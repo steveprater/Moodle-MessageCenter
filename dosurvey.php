@@ -114,16 +114,21 @@ function getCurrentCourseFilter(){
 // is enrolled in a current course
 
 	$month = date("n");
-	if(($month >= 1) && ($month <= 5)){
+	$day = date("j");
+	if(($month >= 1) && ($month < 5)){
 		$year = date("y") - 1;
 		$semester = "3S";
 		// Its Spring!
 	}
-	if(($month >=6) && ($month <= 7)){
+	if(($month > 5) && ($month < 8)){
 		$year = date('y');
 		$semester = "1S";
 	}
-	if(($month >= 8) && ($month <= 12)){
+	if(($month == 5) && ($day >= 20)){
+		$year = date('y');
+                $semester = "1S";
+	}
+	if(($month >= 8) && ($month < 12)){
 		$year = date('y');
 		$semester = '2S';
 	}
