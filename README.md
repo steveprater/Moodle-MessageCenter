@@ -7,19 +7,19 @@ Uses Ajax requests and various javascript and html addons.
 Installation Instructions:
 
 1. Add the following to Administration->Appearance->Additional HTML->Within HEAD:
-
+```
 	<script src="http://your.moodle.com/installdir/include/jquery.min.js"></script>
 	<script src="http://your.moodle.com/installdir/include/messagecenter.js"></script>
 	<link rel="stylesheet" type="text/css" href="http://your.moodle.com/installdir/include/woscbell.css" />
-
+```
 3. Install the dosurvey.php and the config.php in the moodle directory in a "wosc" directory. ex. /var/www/html/moodle/wosc/
 
 4. update the config.php with the proper information.
 
 5. Create a database for the gmail tokens and import the database script with the following command:
-
+```
 	#mysql -u username -p < gmail.sql 
-
+```
 6. Install your "client_secret.json" file in the installdir
 	a. Go to http://console.developers.google.com and create a project.
 	b. In that project go to APIs and auth->Credentials
