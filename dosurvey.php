@@ -36,25 +36,107 @@ else {
 // Main Program Logic
 // ************************************************************
 
+global $LIME;
+$jsonString = new StdClass();
 $moodleId = getMoodleIdFromSession($session);
+$jsonString->studentSurvey = 0;
+$jsonString->nursingSurvey = 0;
+
+$jsonString->studentNumber = str_replace('-','',getStudentNumber($moodleId));
+
 if(isStudent($moodleId)) {
-	if(inCurrentCourse($moodleId) == 1) {
-		$studentNumber = getStudentNumber($moodleId);
-		$results = checkSurveyStatus($studentNumber);
+//	$jsonString->debug = $jsonString->debug . " & " . "is student";
+	if((inCurrentCourse($moodleId) == 1) && ($LIME->surveystatus == 1)) {
+		if(checkSurveyStatus($jsonString->studentNumber)) {
+			$tc = getCurrentCourseFilter();
+                        $tc = substr($tc,2);
+			$jsonString->studentSurvey = $tc;
+		}
 	}
-	else{
-		$results = "0";
-	}
-}
-else {
-	$results = "0";
 }
 
-echo $results;
+if((inNursingCourse($moodleId)) && ($LIME->nurse_surveystatus == 1)) {
+#                $jsonString->debug = $jsonString->debug . " & " . " is In NursinCourse";
+		//echo hasTakenNursingSurvey($jsonString->studentNumber);
+                if (hasTakenNursingSurvey($jsonString->studentNumber) == false) {
+                        $jsonString->nursingSurvey = getNursingCourse($moodleId);
+                }
+}
+
+
+# More info needed now. Have to change this to a json reply
+$json = json_encode($jsonString);
+echo $json;
 
 // **************************************************************
 // Supporting Functions
 // **************************************************************
+
+function inNursingCourse($moodleId) {
+//  Checks to see if the currently logged in student has information in thier MSN field in mdl_user.
+        global $CFG;
+	global $LIME;
+
+        $moodledb = mysql_connect($CFG->dbhost, $CFG->dbuser, $CFG->dbpass);
+        if (!$moodledb) {
+                die('Could not connect to moodle: ' .mysql_error());
+        }
+        mysql_select_db($CFG->dbname, $moodledb);
+
+        $query = 'select
+                        *
+                        from mdl_user
+                        where msn like "'.$LIME->nurse_surveyid.'%"
+                        and id = '.$moodleId.';';
+#        echo $query;
+        $res = mysql_query($query);
+        $num = mysql_num_rows($res);
+#	echo $num;
+        mysql_close();
+
+        if($num > 0){
+		return true;
+        }
+        else {
+                return false;
+        }
+
+}
+
+
+function getNursingCourse($moodleId) {
+//  Checks to see if the currently logged in student has information in thier MSN field in mdl_user.
+        global $CFG;
+        global $LIME;
+
+        $moodledb = mysql_connect($CFG->dbhost, $CFG->dbuser, $CFG->dbpass);
+        if (!$moodledb) {
+                die('Could not connect to moodle: ' .mysql_error());
+        }
+        mysql_select_db($CFG->dbname, $moodledb);
+
+        $query = 'select
+                        *
+                        from mdl_user
+                        where msn like "'.$LIME->nurse_surveyid.'%"
+                        and id = '.$moodleId.';';
+        //echo $query;
+        $res = mysql_query($query);
+        $num = mysql_num_rows($res);
+        mysql_close();
+
+        if($num > 0){
+                $row = mysql_fetch_row($res);
+                $pieces = explode(':',$row[18]);
+                return $pieces[1];
+        }
+        else {
+                return false;
+        }
+
+}
+
+
 
 function getStudentNumber($moodleId) {
 // Gets the WOSC Student ID number from the Moodle Database.
@@ -132,7 +214,7 @@ function getCurrentCourseFilter(){
 		$year = date('y');
 		$semester = '2S';
 	}
-	
+	//echo '%-'.$year.$semester;	
 	return '%-'.$year.$semester;
 	
 }
@@ -199,7 +281,10 @@ function checkSurveyStatus($stdid) {
 	mysql_close();
 	if ($num == 0) {
 		if ($stdid != ""){
-			$result = $stdid;
+			$tc = getCurrentCourseFilter();
+			$tc = substr($tc,2);
+			$json = '{ "studentid":"' . $stdid . '","termcode":"'. $tc  .'"}';
+			$result = $json;
 		}
 		else {
 			$result = "0";
@@ -211,4 +296,37 @@ function checkSurveyStatus($stdid) {
 	return $result;
 }
 
-?>
+function hasTakenNursingSurvey($stdid) {
+// Checks to see if the current user has alreay completed the survey for the semester.
+        global $LIME;
+
+        $lime = mysql_connect($LIME->dbhost, $LIME->dbuser, $LIME->dbpass);
+        if (!$lime) {
+                die('Could not connect: ' .mysql_error());
+        }
+
+        $query = 'select * from lime_survey_'.$LIME->nurse_surveyid.
+                ' where (('.$LIME->nurse_surveyid.'X'.$LIME->nurse_surveygroup.
+                'X'.$LIME->nurse_surveyquestion.' = "'. $stdid .
+                '") and (submitdate is not null));';
+	//echo $query;
+        mysql_select_db($LIME->db, $lime);
+        $res = mysql_query($query);
+        $num = mysql_num_rows($res);
+        mysql_close();
+        if ($num == 0) {
+                if ($stdid != ""){
+                        $result = false;
+                }
+                else {
+                        $result = true;
+                }
+        }
+        else {
+                $result = true;
+        }
+        return $result;
+}
+
+
+
